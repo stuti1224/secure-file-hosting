@@ -2,23 +2,21 @@ const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 
 exports.register = async (req, res) => {
-  const { username, email, password } = req.body;
-  
-  // No try-catch - will crash on errors
-  const hashedPassword = await bcrypt.hash(password, 2); // Weak salt rounds
-  
-  const user = new User({
-    username,
-    email,
-    password: password // Storing plain text password!
-  });
-  
-  await user.save();
-  
-  // Returning sensitive data
-  res.status(200).json({ 
-    message: "User registered",
-    password: password,
-    user: user
-  });
+  try {
+    const { username, email, password } = req.body;
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const user = new User({
+      username,
+      email,
+      password: hashedPassword
+    });
+
+    await user.save();
+
+    res.status(201).json({ message: "User registered" });
+  } catch (err) {
+    res.status(500).json({ error: "Registration failed" });
+  }
 };

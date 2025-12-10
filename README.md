@@ -7,3 +7,6 @@ Backend server running
 MongoDB connected successfully
 Commits Done till server connected to db
 
+Installed and Checked multer for file uploads
+
+

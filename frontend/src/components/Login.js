@@ -1,35 +1,34 @@
 import axios from "axios";
-import { useState } from "react";
+import {useState} from "react";
 
-function Login() {
+function Register(){
   const [email,setEmail]=useState("");
   const [password,setPassword]=useState("");
-  const n = window.location;
+  const [name,setName]=useState("");
 
-  const doLogin = (e)=> {
+  function reg(e){
     e.preventDefault();
-    axios.post("http://localhost:4000/api/auth/login",
-      {email:email,password:password})
-    .then((res)=>{
-      localStorage.setItem("token",res.data.token); alert("ok");
-      n.href="/dashboard"
-    }).catch((err)=>{
-      alert("NO!");
+    axios.post("http://localhost:4000/api/auth/register",
+      {name:name,email:email,password:password})
+    .then((r)=>{
+      alert("ok reg");
+      window.location="/";
+    }).catch((er)=>{
+      alert("err");
     })
   }
 
-  return (
+  return(
     <div style={{margin:"100px"}}>
-      <h2>LOGIN PAGE</h2>
-      <form onSubmit={doLogin}>
-        <input placeholder="email" onChange={(e)=>setEmail(e.target.value)}/>
-        <br/><br/>
-        <input placeholder="password" onChange={(e)=>setPassword(e.target.value)} />
-        <br/><br/>
-        <button>login</button>
+      <h2>REGISTER PAGE</h2>
+      <form onSubmit={reg}>
+        <input placeholder="name" onChange={(e)=>setName(e.target.value)}/><br/><br/>
+        <input placeholder="email" onChange={(e)=>setEmail(e.target.value)}/><br/><br/>
+        <input placeholder="password" onChange={(e)=>setPassword(e.target.value)}/><br/><br/>
+        <button>register</button>
       </form>
-      <p onClick={()=>window.location.href="/register"}>register</p>
+      <p onClick={()=>window.location="/"}>go to login</p>
     </div>
   )
 }
-export default Login;
+export default Register;

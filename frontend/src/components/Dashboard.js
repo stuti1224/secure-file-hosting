@@ -8,18 +8,18 @@ import {
   downloadFile,
 } from "../api/fileApi";
 
-function Dashboard() {
+export default function Dashboard() {
   const navigate = useNavigate();
+
   const [selectedFile, setSelectedFile] = useState(null);
   const [privacy, setPrivacy] = useState("private");
   const [myFiles, setMyFiles] = useState([]);
   const [publicFiles, setPublicFiles] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // redirect to login if no token
+  // redirect if no token
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
+    if (!localStorage.getItem("token")) {
       navigate("/login");
     } else {
       loadFiles();
@@ -28,73 +28,74 @@ function Dashboard() {
 
   async function loadFiles() {
     try {
-      const [myRes, publicRes] = await Promise.all([
-        getMyFiles(),
-        getPublicFiles(),
-      ]);
-      setMyFiles(myRes.data);
-      setPublicFiles(publicRes.data);
+      const [mine, pub] = await Promise.all([getMyFiles(), getPublicFiles()]);
+      setMyFiles(mine.data);
+      setPublicFiles(pub.data);
     } catch (err) {
-      console.error(err);
+      console.log(err);
       alert("Error loading files");
     }
   }
 
   async function handleUpload(e) {
     e.preventDefault();
+
     if (!selectedFile) {
       alert("Please choose a file");
       return;
     }
+
     try {
       setLoading(true);
+
       const formData = new FormData();
       formData.append("file", selectedFile);
       formData.append("privacy", privacy);
 
       await uploadFile(formData);
-      alert("File uploaded");
+
+      alert("file uploaded");
+
       setSelectedFile(null);
-      e.target.reset();
       setPrivacy("private");
+
       loadFiles();
     } catch (err) {
-      console.error(err);
-      alert("Upload failed");
+      console.log(err);
+      alert("upload failed");
     } finally {
       setLoading(false);
     }
   }
 
   async function handleDelete(id) {
-    if (!window.confirm("Delete this file?")) return;
+    if (!window.confirm("delete file?")) return;
+
     try {
       await deleteFile(id);
-      setMyFiles((prev) => prev.filter((f) => f._id !== id));
+      loadFiles();
     } catch (err) {
-      console.error(err);
-      alert("Delete failed");
+      alert("delete failed");
     }
   }
 
-  async function handleDownload(id, filename) {
+  async function handleDownload(id, name) {
     try {
       const blob = await downloadFile(id);
       const url = window.URL.createObjectURL(blob);
+
       const a = document.createElement("a");
       a.href = url;
-      a.download = filename || "file";
-      document.body.appendChild(a);
+      a.download = name;
       a.click();
-      a.remove();
+
       window.URL.revokeObjectURL(url);
     } catch (err) {
-      console.error(err);
-      alert("Download failed");
+      alert("download failed");
     }
   }
 
-  function handleLogout() {
+  function logout() {
     localStorage.removeItem("token");
     navigate("/login");
   }
@@ -102,43 +103,38 @@ function Dashboard() {
   return (
     <div style={{ padding: "30px" }}>
       <h1>Dashboard</h1>
-      <button onClick={handleLogout}>Logout</button>
 
-      {/* Upload section */}
+      <button onClick={logout}>Logout</button>
+
+      {/* Upload Section */}
       <section style={{ marginTop: "30px" }}>
-        <h2>Upload a File</h2>
-        <form onSubmit={handleUpload}>
-          <div style={{ marginBottom: "10px" }}>
-            <input
-              type="file"
-              onChange={(e) => setSelectedFile(e.target.files[0])}
-            />
-          </div>
+        <h2>Upload File</h2>
 
-          <div style={{ marginBottom: "10px" }}>
-            <label>
-              Privacy:{" "}
-              <select
-                value={privacy}
-                onChange={(e) => setPrivacy(e.target.value)}
-              >
-                <option value="private">Private</option>
-                <option value="public">Public</option>
-              </select>
-            </label>
-          </div>
+        <form onSubmit={handleUpload}>
+          <input type="file" onChange={(e) => setSelectedFile(e.target.files[0])} />
+          <br />
+
+          <label>
+            Privacy:
+            <select value={privacy} onChange={(e) => setPrivacy(e.target.value)}>
+              <option value="private">Private</option>
+              <option value="public">Public</option>
+            </select>
+          </label>
+          <br />
 
           <button type="submit" disabled={loading}>
-            {loading ? "Uploading..." : "Upload"}
+            {loading ? "uploading..." : "upload"}
           </button>
         </form>
       </section>
 
-      {/* My files */}
+      {/* My Files */}
       <section style={{ marginTop: "40px" }}>
         <h2>My Files</h2>
+
         {myFiles.length === 0 ? (
-          <p>No files yet.</p>
+          <p>No files yet</p>
         ) : (
           <table border="1" cellPadding="8">
             <thead>
@@ -157,21 +153,15 @@ function Dashboard() {
                   <td>{Math.round(file.size / 1024)}</td>
                   <td>{file.privacy}</td>
                   <td>
-                    <button
-                      onClick={() =>
-                        handleDownload(file._id, file.filename)
-                      }
-                    >
+                    <button onClick={() => handleDownload(file._id, file.filename)}>
                       Download
-                    </button>{" "}
+                    </button>
                     <button onClick={() => handleDelete(file._id)}>
                       Delete
                     </button>
                   </td>
                   <td>
-                    <small>
-                      {`http://localhost:4000/api/files/download/${file._id}`}
-                    </small>
+                    http://localhost:4000/api/files/download/{file._id}
                   </td>
                 </tr>
               ))}
@@ -180,33 +170,30 @@ function Dashboard() {
         )}
       </section>
 
-      {/* Public files */}
+      {/* Public Files */}
       <section style={{ marginTop: "40px" }}>
         <h2>Public Files</h2>
+
         {publicFiles.length === 0 ? (
-          <p>No public files yet.</p>
+          <p>No public files yet</p>
         ) : (
           <table border="1" cellPadding="8">
             <thead>
               <tr>
                 <th>Name</th>
-                <th>Owner</th>
                 <th>Size (KB)</th>
-                <th>Actions</th>
+                <th>Owner</th>
+                <th>Download</th>
               </tr>
             </thead>
             <tbody>
               {publicFiles.map((file) => (
                 <tr key={file._id}>
                   <td>{file.filename}</td>
-                  <td>{file.user}</td>
                   <td>{Math.round(file.size / 1024)}</td>
+                  <td>{file.user}</td>
                   <td>
-                    <button
-                      onClick={() =>
-                        handleDownload(file._id, file.filename)
-                      }
-                    >
+                    <button onClick={() => handleDownload(file._id, file.filename)}>
                       Download
                     </button>
                   </td>
@@ -219,5 +206,3 @@ function Dashboard() {
     </div>
   );
 }
-
-export default Dashboard;

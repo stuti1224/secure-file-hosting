@@ -7,10 +7,11 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Default route shows LOGIN */}
+        <Route path="/" element={<Login />} />
+
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-
-        {/* Protected */}
         <Route path="/dashboard" element={<Dashboard />} />
       </Routes>
     </BrowserRouter>

@@ -17,7 +17,7 @@ export default function Dashboard() {
   const [publicFiles, setPublicFiles] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Load files when dashboard opens
+  // eslint-disable-next-line react-hooks/exhaustive-deps
 useEffect(() => {
   if (!localStorage.getItem("token")) {
     navigate("/login");

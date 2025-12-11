@@ -7,9 +7,7 @@ const upload = require("../middlewares/upload");
 const auth = require("../middlewares/auth");
 const File = require("../models/File");
 
-/* ================================
-   UPLOAD FILE (Protected)
-================================= */
+// Upload file (protected)
 router.post("/upload", auth, upload.single("file"), async (req, res) => {
   try {
     if (!req.file) {
@@ -35,9 +33,7 @@ router.post("/upload", auth, upload.single("file"), async (req, res) => {
   }
 });
 
-/* ================================
-   GET MY FILES (Protected)
-================================= */
+// Get my files (protected)
 router.get("/", auth, async (req, res) => {
   try {
     const files = await File.find({ user: req.user.id }).sort({ createdAt: -1 });
@@ -47,9 +43,7 @@ router.get("/", auth, async (req, res) => {
   }
 });
 
-/* ================================
-   GET PUBLIC FILES
-================================= */
+// Get public files
 router.get("/public", async (req, res) => {
   try {
     const files = await File.find({ privacy: "public" }).sort({ createdAt: -1 });
@@ -59,16 +53,13 @@ router.get("/public", async (req, res) => {
   }
 });
 
-/* ================================
-   DOWNLOAD FILE (Protected)
-================================= */
+// Download file (protected)
 router.get("/download/:id", auth, async (req, res) => {
   try {
     const file = await File.findById(req.params.id);
 
     if (!file) return res.status(404).json({ message: "File not found" });
 
-    // Private files = only owner can download
     if (file.privacy === "private" && file.user.toString() !== req.user.id) {
       return res.status(403).json({ message: "Access denied" });
     }
@@ -81,9 +72,7 @@ router.get("/download/:id", auth, async (req, res) => {
   }
 });
 
-/* ================================
-   DELETE FILE (Protected)
-================================= */
+// Delete file (protected)
 router.delete("/:id", auth, async (req, res) => {
   try {
     const file = await File.findById(req.params.id);
@@ -94,8 +83,8 @@ router.delete("/:id", auth, async (req, res) => {
       return res.status(403).json({ message: "Access denied" });
     }
 
-    fs.unlink(file.path, () => {});  // delete file from disk
-    await file.deleteOne();          // delete from DB
+    fs.unlink(file.path, () => {});
+    await file.deleteOne();
 
     res.json({ message: "File deleted successfully" });
 

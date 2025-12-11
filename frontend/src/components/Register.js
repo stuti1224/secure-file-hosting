@@ -1,12 +1,11 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { registerUser } from "../api/authApi";
 
-export default function Register() {
+function Register() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
 
   const navigate = useNavigate();
 
@@ -14,28 +13,30 @@ export default function Register() {
     e.preventDefault();
 
     try {
-      const response = await registerUser({ name, email, password });
-      alert(response.message); // show success message
-      navigate("/"); // redirect to login
+      const res = await registerUser({ name, email, password });
+      alert(res.data.message);  // <------- FIXED
+      navigate("/login");
     } catch (err) {
-      setError(err.response?.data?.message || "Registration failed");
+      alert(err.response?.data?.error || "Registration failed");
     }
   };
 
   return (
-    <div style={{ padding: "100px" }}>
-      <h1>REGISTER PAGE</h1>
+    <div>
+      <h2>REGISTER PAGE</h2>
+
       <form onSubmit={handleRegister}>
-        <input placeholder="name" value={name} onChange={(e) => setName(e.target.value)} /><br/><br/>
-        <input placeholder="email" value={email} onChange={(e) => setEmail(e.target.value)} /><br/><br/>
-        <input type="password" placeholder="password" value={password} onChange={(e) => setPassword(e.target.value)} /><br/><br/>
+        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="name" />
+        <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email" />
+        <input value={password} onChange={(e) => setPassword(e.target.value)} placeholder="password" />
         <button type="submit">register</button>
       </form>
 
-      {error && <p style={{ color: "red" }}>{error}</p>}
-
-      <br/>
-      <Link to="/">go to login</Link>
+      <p>
+        <Link to="/login">go to login</Link>
+      </p>
     </div>
   );
 }
+
+export default Register;

@@ -17,25 +17,30 @@ export default function Dashboard() {
   const [publicFiles, setPublicFiles] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // redirect if no token
-  useEffect(() => {
-    if (!localStorage.getItem("token")) {
-      navigate("/login");
-    } else {
-      loadFiles();
-    }
-  }, [navigate]);
-
-  async function loadFiles() {
-    try {
-      const [mine, pub] = await Promise.all([getMyFiles(), getPublicFiles()]);
-      setMyFiles(mine.data);
-      setPublicFiles(pub.data);
-    } catch (err) {
-      console.log(err);
-      alert("Error loading files");
-    }
+  // Load files when dashboard opens
+useEffect(() => {
+  if (!localStorage.getItem("token")) {
+    navigate("/login");
+    return;
   }
+
+  loadFiles();
+}, []);
+
+const loadFiles = async () => {
+  try {
+    const my = await getMyFiles();
+    setMyFiles(my.data);
+
+    const pub = await getPublicFiles();
+    setPublicFiles(pub.data);
+
+  } catch (err) {
+    alert("Error loading files");
+    console.log("Load files error:", err);
+  }
+};
+
 
   async function handleUpload(e) {
     e.preventDefault();

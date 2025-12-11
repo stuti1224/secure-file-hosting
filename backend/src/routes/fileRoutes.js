@@ -119,4 +119,24 @@ router.delete("/:id", auth, async (req, res) => {
   }
 });
 
+// GET my files
+router.get("/", auth, async (req, res) => {
+  try {
+    const files = await File.find({ user: req.user.id }).sort({ createdAt: -1 });
+    res.json(files);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to fetch files" });
+  }
+});
+
+router.get("/public", async (req, res) => {
+  try {
+    const files = await File.find({ privacy: "public" }).sort({ createdAt: -1 });
+    res.json(files);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to fetch public files" });
+  }
+});
+
+
 module.exports = router;

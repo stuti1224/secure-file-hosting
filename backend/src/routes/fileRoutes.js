@@ -19,11 +19,11 @@ router.post("/upload", auth, upload.single("file"), async (req, res) => {
     const privacy = req.body.privacy === "public" ? "public" : "private";
 
     const savedFile = await File.create({
-      filename: req.file.originalname,
+      filename: req.file.filename,
       path: req.file.path,
       size: req.file.size,
-      privacy,
       user: req.user.id,
+      privacy: req.body.privacy || "private"
     });
 
     res.status(201).json({

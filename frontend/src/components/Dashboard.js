@@ -1,67 +1,221 @@
-import { useState, useEffect } from "react";
-import axios from "axios";
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  uploadFile,
+  getMyFiles,
+  getPublicFiles,
+  deleteFile,
+  downloadFile,
+} from "../api/fileApi";
 
 function Dashboard() {
-  const [file, setFile] = useState();
-  const [list, setList] = useState([]);
+  const navigate = useNavigate();
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [privacy, setPrivacy] = useState("private");
+  const [myFiles, setMyFiles] = useState([]);
+  const [publicFiles, setPublicFiles] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  function uploadNow() {
-    const f = new FormData();
-    f.append("file", file);
-    axios.post("http://localhost:4000/api/files/upload", f, {
-      headers: { "Authorization": "Bearer " + localStorage.getItem("token") }
-    }).then((r) => {
-      alert("uploaded");
-      load();
-    }).catch(() => alert("err upload"));
+  // redirect to login if no token
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      navigate("/login");
+    } else {
+      loadFiles();
+    }
+  }, [navigate]);
+
+  async function loadFiles() {
+    try {
+      const [myRes, publicRes] = await Promise.all([
+        getMyFiles(),
+        getPublicFiles(),
+      ]);
+      setMyFiles(myRes.data);
+      setPublicFiles(publicRes.data);
+    } catch (err) {
+      console.error(err);
+      alert("Error loading files");
+    }
   }
 
-  function load() {
-    axios.get("http://localhost:4000/api/files", {
-      headers: { "Authorization": "Bearer " + localStorage.getItem("token") }
-    }).then((res) => {
-      setList(res.data);
-    })
+  async function handleUpload(e) {
+    e.preventDefault();
+    if (!selectedFile) {
+      alert("Please choose a file");
+      return;
+    }
+    try {
+      setLoading(true);
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+      formData.append("privacy", privacy);
+
+      await uploadFile(formData);
+      alert("File uploaded");
+      setSelectedFile(null);
+      e.target.reset();
+      setPrivacy("private");
+      loadFiles();
+    } catch (err) {
+      console.error(err);
+      alert("Upload failed");
+    } finally {
+      setLoading(false);
+    }
   }
 
-  function d(id) {
-    axios.get("http://localhost:4000/api/files/download/" + id, {
-      headers: { "Authorization": "Bearer " + localStorage.getItem("token") },
-      responseType: "blob"
-    }).then((res) => {
-      const url = window.URL.createObjectURL(new Blob([res.data]));
+  async function handleDelete(id) {
+    if (!window.confirm("Delete this file?")) return;
+    try {
+      await deleteFile(id);
+      setMyFiles((prev) => prev.filter((f) => f._id !== id));
+    } catch (err) {
+      console.error(err);
+      alert("Delete failed");
+    }
+  }
+
+  async function handleDownload(id, filename) {
+    try {
+      const blob = await downloadFile(id);
+      const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "file";
+      a.download = filename || "file";
+      document.body.appendChild(a);
       a.click();
-    })
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error(err);
+      alert("Download failed");
+    }
   }
 
-  useEffect(() => {
-    load();
-  }, []);
+  function handleLogout() {
+    localStorage.removeItem("token");
+    navigate("/login");
+  }
 
   return (
-    <div style={{ margin: "50px" }}>
-      <h2>DASHBOARD</h2>
+    <div style={{ padding: "30px" }}>
+      <h1>Dashboard</h1>
+      <button onClick={handleLogout}>Logout</button>
 
-      <input type="file" onChange={(e) => setFile(e.target.files[0])}/>
-      <button onClick={uploadNow}>UPLOAD</button>
+      {/* Upload section */}
+      <section style={{ marginTop: "30px" }}>
+        <h2>Upload a File</h2>
+        <form onSubmit={handleUpload}>
+          <div style={{ marginBottom: "10px" }}>
+            <input
+              type="file"
+              onChange={(e) => setSelectedFile(e.target.files[0])}
+            />
+          </div>
 
-      <h3>FILES:</h3>
-      <ul>
-        {list.map((f, i) =>
-          <li key={i}>
-            {f.filename} 
-            <button onClick={() => d(f._id)}>download</button>
-          </li>
+          <div style={{ marginBottom: "10px" }}>
+            <label>
+              Privacy:{" "}
+              <select
+                value={privacy}
+                onChange={(e) => setPrivacy(e.target.value)}
+              >
+                <option value="private">Private</option>
+                <option value="public">Public</option>
+              </select>
+            </label>
+          </div>
+
+          <button type="submit" disabled={loading}>
+            {loading ? "Uploading..." : "Upload"}
+          </button>
+        </form>
+      </section>
+
+      {/* My files */}
+      <section style={{ marginTop: "40px" }}>
+        <h2>My Files</h2>
+        {myFiles.length === 0 ? (
+          <p>No files yet.</p>
+        ) : (
+          <table border="1" cellPadding="8">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Size (KB)</th>
+                <th>Privacy</th>
+                <th>Actions</th>
+                <th>Share Link</th>
+              </tr>
+            </thead>
+            <tbody>
+              {myFiles.map((file) => (
+                <tr key={file._id}>
+                  <td>{file.filename}</td>
+                  <td>{Math.round(file.size / 1024)}</td>
+                  <td>{file.privacy}</td>
+                  <td>
+                    <button
+                      onClick={() =>
+                        handleDownload(file._id, file.filename)
+                      }
+                    >
+                      Download
+                    </button>{" "}
+                    <button onClick={() => handleDelete(file._id)}>
+                      Delete
+                    </button>
+                  </td>
+                  <td>
+                    <small>
+                      {`http://localhost:4000/api/files/download/${file._id}`}
+                    </small>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
-      </ul>
+      </section>
 
-      <p style={{ cursor: "pointer", color: "red" }} onClick={() => {
-        localStorage.removeItem("token");
-        window.location="/";
-      }}>LOGOUT</p>
+      {/* Public files */}
+      <section style={{ marginTop: "40px" }}>
+        <h2>Public Files</h2>
+        {publicFiles.length === 0 ? (
+          <p>No public files yet.</p>
+        ) : (
+          <table border="1" cellPadding="8">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Owner</th>
+                <th>Size (KB)</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {publicFiles.map((file) => (
+                <tr key={file._id}>
+                  <td>{file.filename}</td>
+                  <td>{file.user}</td>
+                  <td>{Math.round(file.size / 1024)}</td>
+                  <td>
+                    <button
+                      onClick={() =>
+                        handleDownload(file._id, file.filename)
+                      }
+                    >
+                      Download
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </section>
     </div>
   );
 }
